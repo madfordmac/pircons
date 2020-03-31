@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import configparser
 import importlib
 import sys
@@ -18,10 +17,10 @@ class NetWatcher(object):
 			raise TypeError("The activate parameter expected a NetActivate object but got a {t:s}.".format(t=type(activate).__name__))
 		self.activate = activate
 
-class Config(object):
+class NetConfig(object):
 	"""Loads the config from file and deals with the messy stuff."""
 	def __init__(self, config_file):
-		super(Config, self).__init__()
+		super(NetConfig, self).__init__()
 		cfg = configparser.ConfigParser()
 		cfg.read(config_file)
 		query_name = cfg.get('setup', 'query plugin')
@@ -29,17 +28,17 @@ class Config(object):
 			self.query_class = getattr(importlib.import_module('plugins.NetQuery.%s' % query_name), query_name)
 		except ModuleNotFoundError as e:
 			logger.critical("Not able to find NetQuery plugin %s!" % query_name)
-			sys.exit(1)
+			raise ValueError("Unable to find configured NetQuery plugin.")
 		notify_name = cfg.get('setup', 'notify plugin')
 		try:
 			self.notify_class = getattr(importlib.import_module('plugins.NetNotify.%s' % notify_name), notify_name)
 		except ModuleNotFoundError as e:
 			logger.critical("Not able to find NetNotify plugin %s!" % notify_name)
-			sys.exit(1)
+			raise ValueError("Unable to find configured NetNotify plugin.")
 		activate_name = cfg.get('setup', 'activate plugin')
 		try:
 			self.activate_class = getattr(importlib.import_module('plugins.NetActivate.%s' % activate_name), activate_name)
 		except ModuleNotFoundError as e:
 			logger.critical("Not able to find NetActivate plugin %s!" % activate_name)
-			sys.exit(1)
+			raise ValueError("Unable to find configured NetActivate plugin.")
 		self.cfg = cfg
