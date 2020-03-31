@@ -4,7 +4,17 @@ import importlib
 import sys
 
 class NetWatcher(object):
-	"""docstring for NetWatcher"""
+	"""NetWatcher coordinates a NetQuery, NetNotify, and NetActivate module to 
+	monitor connectivity and activate a secondary connection.
+	:param query: A NetQuery object to query connectivity
+	:param notify: A NetNotify object to notify user of secondary connection's IP
+	:param activate: A NetActivate object to activate the secondary connection
+	"""
+
+	# Constants
+	PRIMARY = 1
+	SECONDARY = 2
+
 	def __init__(self, query, notify, activate):
 		super(NetWatcher, self).__init__()
 		if not isinstance(query, NetQuery):
@@ -16,6 +26,15 @@ class NetWatcher(object):
 		if not isinstance(activate, NetActivate):
 			raise TypeError("The activate parameter expected a NetActivate object but got a {t:s}.".format(t=type(activate).__name__))
 		self.activate = activate
+		self.mode = self.PRIMARY
+
+	def poll(self):
+		"""Does 1 connection poll. If the connection is down, activate secondary and send alert.
+		"""
+		if self.mode == self.PRIMARY:
+			if not self.query.query():
+				self.notify.notify(self.activate.activate())
+				self.mode = self.SECONDARY
 
 class NetConfig(object):
 	"""Loads the config from file and deals with the messy stuff."""
