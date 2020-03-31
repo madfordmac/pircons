@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+from .plugins.NetQuery import NetQuery
+from .plugins.NetNotify import NetNotify
+from .plugins.NetActivate import NetActivate
 import configparser
 import importlib
 import sys
@@ -44,19 +47,19 @@ class NetConfig(object):
 		cfg.read(config_file)
 		query_name = cfg.get('setup', 'query plugin')
 		try:
-			self.query_class = getattr(importlib.import_module('plugins.NetQuery.%s' % query_name), query_name)
+			self.query_class = getattr(importlib.import_module('pircons.plugins.NetQuery.%s' % query_name), query_name)
 		except ModuleNotFoundError as e:
 			logger.critical("Not able to find NetQuery plugin %s!" % query_name)
 			raise ValueError("Unable to find configured NetQuery plugin.")
 		notify_name = cfg.get('setup', 'notify plugin')
 		try:
-			self.notify_class = getattr(importlib.import_module('plugins.NetNotify.%s' % notify_name), notify_name)
+			self.notify_class = getattr(importlib.import_module('pircons.plugins.NetNotify.%s' % notify_name), notify_name)
 		except ModuleNotFoundError as e:
 			logger.critical("Not able to find NetNotify plugin %s!" % notify_name)
 			raise ValueError("Unable to find configured NetNotify plugin.")
 		activate_name = cfg.get('setup', 'activate plugin')
 		try:
-			self.activate_class = getattr(importlib.import_module('plugins.NetActivate.%s' % activate_name), activate_name)
+			self.activate_class = getattr(importlib.import_module('pircons.plugins.NetActivate.%s' % activate_name), activate_name)
 		except ModuleNotFoundError as e:
 			logger.critical("Not able to find NetActivate plugin %s!" % activate_name)
 			raise ValueError("Unable to find configured NetActivate plugin.")
