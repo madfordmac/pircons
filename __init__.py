@@ -4,6 +4,7 @@ from .plugins.NetNotify import NetNotify
 from .plugins.NetActivate import NetActivate
 import configparser
 import importlib
+import logging
 import sys
 
 class NetWatcher(object):
@@ -20,6 +21,7 @@ class NetWatcher(object):
 
 	def __init__(self, query, notify, activate):
 		super(NetWatcher, self).__init__()
+		self.__logger = logging.getLogger('pircons.NetWatcher')
 		if not isinstance(query, NetQuery):
 			raise TypeError("The query parameter expects a NetQuery object but got a {t:s}.".format(t=type(query).__name__))
 		self.query = query
@@ -30,21 +32,28 @@ class NetWatcher(object):
 			raise TypeError("The activate parameter expected a NetActivate object but got a {t:s}.".format(t=type(activate).__name__))
 		self.activate = activate
 		self.mode = self.PRIMARY
+		self.__logger.debug("Created NetWatcher with a %(q)s NetQuery, %(n)s NetNotify and %(a)s NetActivate." % {'q': type(self.query).__name__, 'n': type(self.notify).__name__, 'a': type(self.activate).__name__})
 
 	def poll(self):
 		"""Does 1 connection poll. If the connection is down, activate secondary and send alert.
 		"""
 		if self.mode == self.PRIMARY:
+			self.__logger.debug('Mode is PRIMARY. Querying connectivity.')
 			if not self.query.query():
+				self.__logger.debug('Connection is DOWN! Calling activate/notify.')
 				self.notify.notify(self.activate.activate())
 				self.mode = self.SECONDARY
+		else:
+			self.__logger.debug('Mode is SECONDARY. No query until reset.')
 
 class NetConfig(object):
 	"""Loads the config from file and deals with the messy stuff."""
 	def __init__(self, config_file):
 		super(NetConfig, self).__init__()
+		self.__logger = logging.getLogger('pircons.NetConfig')
 		cfg = configparser.ConfigParser()
 		cfg.read(config_file)
+		self.__logger.info('Read and parsed config file «%s».' % config_file)
 		query_name = cfg.get('setup', 'query plugin')
 		try:
 			self.query_class = getattr(importlib.import_module('pircons.plugins.NetQuery.%s' % query_name), query_name)
