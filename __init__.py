@@ -48,7 +48,7 @@ class NetWatcher(object):
 	def trip(self):
 		self.notify.notify(self.activate.activate())
 		self.mode = self.SECONDARY
-		self.__logger.debug('Trip complete. Secondary active and notification sent.')
+		self.__logger.info('Trip complete. Secondary active and notification sent.')
 
 	def reset(self):
 		"""Deactivates the secondary connection.

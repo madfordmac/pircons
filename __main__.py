@@ -40,8 +40,10 @@ async def socket_handler(reader, writer, nw):
 	STX = chr(2).encode('ascii')
 	ETX = chr(3).encode('ascii')
 	EOT = chr(4).encode('ascii')
+	logger.debug('Started socket_handler to handle a connection.')
 	request = await reader.read(1)
 	if request != ENQ:
+		logger.warning('Socket communication did not begin with ENQ.')
 		reader.close()
 		writer.close()
 		return None
@@ -49,14 +51,17 @@ async def socket_handler(reader, writer, nw):
 	await writer.drain()
 	request = await reader.read(3)
 	if (request[0] != STX) or (request[2] != ETX) or (request[1] not in b'01'):
+		logger.warning('Socket communication message not of correct format.')
 		reader.close()
 		writer.close()
 		return None
 	writer.write(ACK)
 	await writer.drain()
 	if request[1] == b'0':
+		logger.debug('Message received on socket to trip the watcher.')
 		nw.trip()
 	else:
+		logger.debug('Message received on socket to reset the watcher.')
 		nw.reset()
 	writer.write(EOT)
 	await writer.drain()
@@ -68,6 +73,7 @@ async def poll_handler(nw):
 	:param nw: the active NetWatcher object
 	:return: None
 	'''
+	logger.debug('Started poll_handler to poll for connectivity status.')
 	while True:
 		nw.poll()
 		await asyncio.sleep(60)
@@ -80,6 +86,7 @@ class CleanExitException(Exception):
 		:param stack_frame: the current stack frame (required by signal)
 		:return: None
 		'''
+		logger.debug('Using CleanExitException to shut down service.')
 		raise cls()
 
 def main(args):
