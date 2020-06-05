@@ -41,7 +41,7 @@ async def socket_handler(reader, writer, nw):
 	ETX = chr(3).encode('ascii')
 	EOT = chr(4).encode('ascii')
 	request = await reader.read(1)
-	if request != ENQ
+	if request != ENQ:
 		reader.close()
 		writer.close()
 		return None
@@ -70,7 +70,7 @@ async def poll_handler(nw):
 	'''
 	while True:
 		nw.poll()
-		asyncio.sleep(60)
+		await asyncio.sleep(60)
 
 class CleanExitException(Exception):
 	@classmethod
@@ -88,7 +88,7 @@ def main(args):
 	signal.signal(signal.SIGTERM, CleanExitException.exit_handler)
 	loop = asyncio.get_event_loop()
 	try:
-		asyncio.ensure_future(socket_handler(nw))
+		asyncio.ensure_future(poll_handler(nw))
 		loop.create_task(asyncio.start_unix_server(functools.partial(socket_handler, nw=nw), path='/run/pircons/sock'))
 		loop.run_forever()
 	except (KeyboardInterrupt, CleanExitException):
