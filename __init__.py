@@ -40,11 +40,22 @@ class NetWatcher(object):
 		if self.mode == self.PRIMARY:
 			self.__logger.debug('Mode is PRIMARY. Querying connectivity.')
 			if not self.query.query():
-				self.__logger.debug('Connection is DOWN! Calling activate/notify.')
-				self.notify.notify(self.activate.activate())
-				self.mode = self.SECONDARY
+				self.__logger.info('Connection is DOWN! Calling activate/notify.')
+				self.trip()
 		else:
 			self.__logger.debug('Mode is SECONDARY. No query until reset.')
+
+	def trip(self):
+		self.notify.notify(self.activate.activate())
+		self.mode = self.SECONDARY
+		self.__logger.debug('Trip complete. Secondary active and notification sent.')
+
+	def reset(self):
+		"""Deactivates the secondary connection.
+		"""
+		self.activate.deactivate()
+		self.mode = self.PRIMARY
+		self.__logger.info('Reset complete. Back on primary connection.')
 
 class NetConfig(object):
 	"""Loads the config from file and deals with the messy stuff."""
