@@ -20,6 +20,54 @@ logger.addHandler(handlr)
 
 parser = argparse.ArgumentParser(description="Monitor your Internet connection. Start a secondary connection and send you the IP if it goes down.")
 parser.add_argument('-c', '--config', help="Config file. Default=/usr/local/etc/pircons.ini", default='/usr/local/etc/pircons.ini')
+mode = parser.add_mutually_exclusive_group(required=True)
+mode.add_argument('-d', '--daemon', action='store_true', help="Run in daemon mode and monitor system.")
+mode.add_argument('-t', '--trip', action='store_true', help="Trip the system and activate secondary connection.")
+mode.add_argument('-r', '--reset', action='store_true', help="Reset the system for the primary connection.")
+
+class S(object):
+	"""Collect some constants for the socket protocol"""
+	def __init__(self):
+		super(S, self).__init__()
+
+	ACK = chr(6).encode('ascii')
+	ENQ = chr(5).encode('ascii')
+	STX = chr(2).encode('ascii')
+	ETX = chr(3).encode('ascii')
+	EOT = chr(4).encode('ascii')
+
+def socket_client(mode):
+	'''Client for Unix socket to communicate with daemon. See socket_handler for protocol description.
+	Mode:
+	 - 0: Trip watcher
+	 - 1: Reset watcher
+	:param mode: What message should be sent down the socket? (See above.)
+	:return: None
+	'''
+	if mode not in [0,1]:
+		raise RuntimeError("Mode must be 0 or 1.")
+	mode = str(mode).encode('ascii')
+	s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+	s.connect('/run/pircons/sock')
+	logger.debug('Connection to socket established.')
+	s.sendall(S.ENQ)
+	request = s.recv(1)
+	if request != S.ACK:
+		s.close()
+		logger.warning('Socket communication did not receive ACK.')
+		return False
+	s.sendall(S.STX + mode + S.ETX)
+	request = s.recv(1)
+	if request != S.ACK:
+		s.close()
+		logger.warning('Socket communication did not receive ACK.')
+	request = s.recv(1)
+	if request != S.EOT:
+		s.close()
+		logger.warning('Socket communication did not receive EOT.')
+	verb = 'trip' if mode == b'0' else 'reset'
+	logger.debug(f'Successfully sent message to {verb} the watcher.')
+	return True
 
 async def socket_handler(reader, writer, nw):
 	'''Unix socket for enabling/disabling the secondary connection.
@@ -35,27 +83,22 @@ async def socket_handler(reader, writer, nw):
 	:param nw: the active NetWatcher object
 	:return: None
 	'''
-	ACK = chr(6).encode('ascii')
-	ENQ = chr(5).encode('ascii')
-	STX = chr(2).encode('ascii')
-	ETX = chr(3).encode('ascii')
-	EOT = chr(4).encode('ascii')
 	logger.debug('Started socket_handler to handle a connection.')
 	request = await reader.read(1)
-	if request != ENQ:
+	if request != S.ENQ:
 		logger.warning('Socket communication did not begin with ENQ.')
 		reader.close()
 		writer.close()
 		return None
-	writer.write(ACK)
+	writer.write(S.ACK)
 	await writer.drain()
 	request = await reader.read(3)
-	if (request[0] != STX) or (request[2] != ETX) or (request[1] not in b'01'):
+	if (request[0] != S.STX) or (request[2] != S.ETX) or (request[1] not in b'01'):
 		logger.warning('Socket communication message not of correct format.')
 		reader.close()
 		writer.close()
 		return None
-	writer.write(ACK)
+	writer.write(S.ACK)
 	await writer.drain()
 	if request[1] == b'0':
 		logger.debug('Message received on socket to trip the watcher.')
@@ -63,7 +106,7 @@ async def socket_handler(reader, writer, nw):
 	else:
 		logger.debug('Message received on socket to reset the watcher.')
 		nw.reset()
-	writer.write(EOT)
+	writer.write(S.EOT)
 	await writer.drain()
 	reader.close()
 	writer.close()
@@ -92,14 +135,22 @@ class CleanExitException(Exception):
 def main(args):
 	cfg = NetConfig(args.config)
 	nw = NetWatcher(cfg.query_class(), cfg.notify_class(), cfg.activate_class())
-	signal.signal(signal.SIGTERM, CleanExitException.exit_handler)
-	loop = asyncio.get_event_loop()
-	try:
-		asyncio.ensure_future(poll_handler(nw))
-		loop.create_task(asyncio.start_unix_server(functools.partial(socket_handler, nw=nw), path='/run/pircons/sock'))
-		loop.run_forever()
-	except (KeyboardInterrupt, CleanExitException):
-		sys.exit(0)
+	if args.daemon:
+		signal.signal(signal.SIGTERM, CleanExitException.exit_handler)
+		loop = asyncio.get_event_loop()
+		try:
+			asyncio.ensure_future(poll_handler(nw))
+			loop.create_task(asyncio.start_unix_server(functools.partial(socket_handler, nw=nw), path='/run/pircons/sock'))
+			loop.run_forever()
+		except (KeyboardInterrupt, CleanExitException):
+			sys.exit(0)
+	elif args.trip:
+		socket_client(0)
+	elif args.reset:
+		socket_client(1)
+	else:
+		logger.debug("Don't know how we got here, but somehow no mode option was chosen. Guess we'll quit.")
+		sys.exit(255)
 
 if __name__ == '__main__':
 	args = parser.parse_args()
