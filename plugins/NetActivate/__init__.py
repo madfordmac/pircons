@@ -1,6 +1,6 @@
 class NetActivate(object):
 	"""Non-functional base class for (de)activating the secondary connection."""
-	def __init__(self):
+	def __init__(self, cfg):
 		super(NetActivate, self).__init__()
 	
 	def activate(self):

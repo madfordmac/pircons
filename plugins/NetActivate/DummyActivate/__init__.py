@@ -2,7 +2,7 @@ from .. import NetActivate
 
 class DummyActivate(NetActivate):
 	"""Debugging activation module. Prints things to the console, but doesn't actually do anything"""
-	def __init__(self):
+	def __init__(self, cfg):
 		super(DummyActivate, self).__init__()
 
 	def activate(self):

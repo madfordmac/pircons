@@ -2,7 +2,7 @@ from .. import NetQuery
 
 class FalseQuery(NetQuery):
 	"""Always unsuccessful query."""
-	def __init__(self):
+	def __init__(self, cfg):
 		super(FalseQuery, self).__init__()
 
 	def query(self):

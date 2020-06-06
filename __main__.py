@@ -129,7 +129,7 @@ class CleanExitException(Exception):
 
 def main(args):
 	cfg = NetConfig(args.config)
-	nw = NetWatcher(cfg.query_class(), cfg.notify_class(), cfg.activate_class())
+	nw = NetWatcher(cfg.query_class(cfg), cfg.notify_class(cfg), cfg.activate_class(cfg))
 	if args.daemon:
 		signal.signal(signal.SIGTERM, CleanExitException.exit_handler)
 		loop = asyncio.get_event_loop()

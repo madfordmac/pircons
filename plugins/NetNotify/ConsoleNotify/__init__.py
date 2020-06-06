@@ -2,7 +2,7 @@ from .. import NetNotify
 
 class ConsoleNotify(NetNotify):
 	"""Print a line to stdout with the IP to access."""
-	def __init__(self):
+	def __init__(self, cfg):
 		super(ConsoleNotify, self).__init__()
 
 	def notify(self, ip):

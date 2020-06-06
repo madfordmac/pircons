@@ -1,6 +1,6 @@
 class NetQuery(object):
 	"""Non-functional base class for determining if the Internet is available."""
-	def __init__(self):
+	def __init__(self, cfg):
 		super(NetQuery, self).__init__()
 
 	def query(self):

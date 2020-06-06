@@ -1,6 +1,6 @@
 class NetNotify(object):
 	"""Non-functional base class for notifying user that the Internet is down and the IP where the host can be reached."""
-	def __init__(self):
+	def __init__(self, cfg):
 		super(NetNotify, self).__init__()
 		
 	def notify(self, ip):
