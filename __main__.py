@@ -2,6 +2,7 @@
 from . import NetWatcher, NetConfig
 import asyncio
 import signal
+import socket
 import functools
 import logging
 import argparse
@@ -66,7 +67,7 @@ def socket_client(mode):
 		s.close()
 		logger.warning('Socket communication did not receive EOT.')
 	verb = 'trip' if mode == b'0' else 'reset'
-	logger.debug(f'Successfully sent message to {verb} the watcher.')
+	logger.debug('Successfully sent message to %s the watcher.' % verb)
 	return True
 
 async def socket_handler(reader, writer, nw):
@@ -87,20 +88,16 @@ async def socket_handler(reader, writer, nw):
 	request = await reader.read(1)
 	if request != S.ENQ:
 		logger.warning('Socket communication did not begin with ENQ.')
-		reader.close()
-		writer.close()
 		return None
 	writer.write(S.ACK)
 	await writer.drain()
 	request = await reader.read(3)
-	if (request[0] != S.STX) or (request[2] != S.ETX) or (request[1] not in b'01'):
+	if (request[0:1] != S.STX) or (request[2:3] != S.ETX) or (request[1:2] not in b'01'):
 		logger.warning('Socket communication message not of correct format.')
-		reader.close()
-		writer.close()
 		return None
 	writer.write(S.ACK)
 	await writer.drain()
-	if request[1] == b'0':
+	if request[1:2] == b'0':
 		logger.debug('Message received on socket to trip the watcher.')
 		nw.trip()
 	else:
@@ -108,8 +105,6 @@ async def socket_handler(reader, writer, nw):
 		nw.reset()
 	writer.write(S.EOT)
 	await writer.drain()
-	reader.close()
-	writer.close()
 
 async def poll_handler(nw):
 	'''Periodically poll for internet connection status.
