@@ -5,7 +5,7 @@ import re
 class DNSQuery(NetQuery):
 	"""Query configured or default DNS servers for a particular record."""
 	def __init__(self, cfg):
-		super(DNSQuery, self).__init__()
+		super(DNSQuery, self).__init__(cfg)
 		query, nameservers = None, None
 		if cfg.has_section('DNSQuery'):
 			if cfg.has_option('DNSQuery', 'record'):
